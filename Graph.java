@@ -5,7 +5,6 @@ import java.util.ArrayDeque;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.HashSet;
-import java.util.Comparator;
 
 public class Graph {
   private Hashtable<String, Town> graph = new Hashtable<String, Town>();
@@ -22,10 +21,10 @@ public class Graph {
     int weight;
 
     for(int i = 0; i < roadList.length; i++) {
-      String[] roadInfo = roadList[i].split("");
-      source = roadInfo[0];
-      target = roadInfo[1];
-      weight = Integer.parseInt(roadInfo[2]);
+      String roadInfo = roadList[i];
+      source = roadInfo.substring(0, 1);
+      target = roadInfo.substring(1, 2);
+      weight = Integer.parseInt(roadInfo.substring(2));
 
       if (graph.get(source) == null) {
         graph.put(source, new Town(source));
@@ -46,7 +45,7 @@ public class Graph {
 
 
 
-  public String getRouteDistance(String[] town_names) {
+  public String getRouteDistance(String[] townNames) {
 
     int total = 0;
     Town currentTown;
@@ -55,14 +54,14 @@ public class Graph {
     Adjacency adj;
     boolean foundRoad;
 
-    for (int i = 0; i < town_names.length - 1; i++) {
+    for (int i = 0; i < townNames.length - 1; i++) {
 
-      currentTown = graph.get(town_names[i]);
+      currentTown = graph.get(townNames[i]);
       if (currentTown == null) {
         return "INVALID TOWN NAME - TOWN NOT FOUND";
       }
 
-      nextTownName = town_names[i + 1];
+      nextTownName = townNames[i + 1];
       currentTownAdjacencies = currentTown.getAdjacencies();
       foundRoad = false;
       for (int j = 0; j < currentTownAdjacencies.size(); j++) {
@@ -80,30 +79,30 @@ public class Graph {
     return Integer.toString(total);
   }
 
-  public String getNumberOfPathsConditions(String start_town, String end_town, PathConditions conditions) {
+  public String getNumberOfPathsConditions(String startTown, String endTown, PathConditions conditions) {
 
-    Object[] temp;
+    // breadth-first search for solutions while the current path still meets conditions
+    PathInfo current;
     String townName;
-    int distance;
-    int num_stops;
+    int distance, numStops;
     int totalPaths = 0;
-    ArrayList<Adjacency> currentTownAdjacencies = new ArrayList<Adjacency>();
-    Deque<Object[]> deque = new ArrayDeque<Object[]>();
-    deque.addFirst(new Object[] {start_town, 0, 0});
+    ArrayList<Adjacency> currentTownAdjacencies;
+    Deque<PathInfo> deque = new ArrayDeque<PathInfo>();
+    deque.addFirst(new PathInfo(startTown, 0, 0));
 
     while (deque.size() > 0) {
-      temp = deque.pop();
-      townName = temp[0].toString();
-      distance = (Integer) temp[1];
-      num_stops = (Integer) temp[2];
+      current = deque.pop();
+      townName = current.getName();
+      distance = current.getDistance();
+      numStops = current.getNumStops();
 
-      if (townName.equals(end_town) && conditions.terminalConditionsSatisfiedBy(num_stops, distance)) {
+      if (townName.equals(endTown) && conditions.terminalConditionsSatisfiedBy(numStops, distance)) {
         totalPaths = totalPaths + 1;
       }
-      if (conditions.currentConditionsSatisfiedBy(num_stops, distance)) {
+      if (conditions.currentConditionsSatisfiedBy(numStops, distance)) {
         currentTownAdjacencies = graph.get(townName).getAdjacencies();
         for (int i = 0; i < currentTownAdjacencies.size(); i++) {
-          deque.addFirst(new Object[] {currentTownAdjacencies.get(i).getTarget(), distance + currentTownAdjacencies.get(i).getWeight(), num_stops + 1});
+          deque.addFirst(new PathInfo(currentTownAdjacencies.get(i).getTarget(), distance + currentTownAdjacencies.get(i).getWeight(), numStops + 1));
         }
       }
     }
@@ -111,123 +110,85 @@ public class Graph {
 
   }
 
-  public String getNumberOfPathsStops(String start_town, String end_town, int min_stops, int max_stops) {
+  public String getNumberOfPathsStops(String startTown, String endTown, int minStops, int maxStops) {
 
     PathConditions conditions = new PathConditions();
-    conditions.setMinStops(min_stops);
-    conditions.setMaxStops(max_stops);
-    return getNumberOfPathsConditions(start_town, end_town, conditions);
+    conditions.setMinStops(minStops);
+    conditions.setMaxStops(maxStops);
+    return getNumberOfPathsConditions(startTown, endTown, conditions);
   }
 
 
-  public String getNumberOfPathsDistance(String start_town, String end_town, int max_distance) {
+  public String getNumberOfPathsDistance(String startTown, String endTown, int max_distance) {
 
     PathConditions conditions = new PathConditions();
     conditions.setMinDistance(0);
     conditions.setMaxDistance(max_distance);
-    return getNumberOfPathsConditions(start_town, end_town, conditions);
+    return getNumberOfPathsConditions(startTown, endTown, conditions);
   }
 
 
+  public String getShortestPath(String startTown, String endTown) {
 
-  public String getShortestPath(String start_town, String end_town) {
+    // dijkstra's algorithm using priority queue
 
-    Comparator<Object[]> comp = new Comparator<Object[]>() {
-      public int compare(Object[] obj1, Object[] obj2) {
-        int dist1 = (Integer) obj1[1];
-        int dist2 = (Integer) obj2[1];
-        if (dist1 == dist2) {
-          return 0;
-        } else if (dist1 > dist2) {
-          return 1;
-        } else {
-          return -1;
-        }
-      }
-    };
-
+    PathInfo current;
+    String townName;
+    Adjacency adj;
+    int distance;
+    int proposed_distance;
+    ArrayList<Adjacency> currentTownAdjacencies;
     Set<String> unvisited = new HashSet<String>();
-
     Hashtable<String, Integer> distances = new Hashtable<String, Integer>();
 
     for (String key: graph.keySet()) {
       distances.put(key, Integer.MAX_VALUE);
       unvisited.add(key);
     }
+    distances.put(startTown, 0);
 
-    PriorityQueue<Object[]> queue = new PriorityQueue<Object[]>(graph.size(), comp);
-    queue.add(new Object[] {start_town, distances.get(start_town)});
+    PriorityQueue<PathInfo> queue = new PriorityQueue<PathInfo>(graph.size(), new DistanceComparator());
+    queue.add(new PathInfo(startTown, distances.get(startTown)));
 
-    Object[] temp;
-    String townName;
-    Adjacency adj;
-    int distance;
-    int proposed_distance;
-    ArrayList<Adjacency> currentTownAdjacencies = new ArrayList<Adjacency>();
 
     while (queue.size() > 0) {
-      temp = queue.poll();
-      townName = temp[0].toString();
-      distance = (Integer) temp[1];
+      current = queue.poll();
+      townName = current.getName();
+      distance = current.getDistance();
 
-      if (townName == start_town && distance < Integer.MAX_VALUE) {
+      if (townName.equals(endTown) && distance > 0) {
         return Integer.toString(distance);
-      } else if (townName != start_town) {
+      } else if (!townName.equals(startTown)) {
         unvisited.remove(townName);
       }
 
       currentTownAdjacencies = graph.get(townName).getAdjacencies();
       for (int i = 0; i < currentTownAdjacencies.size(); i++) {
         adj = currentTownAdjacencies.get(i);
-        if (townName == start_town) {
-          proposed_distance = adj.getWeight();
-        } else {
-          proposed_distance = distances.get(townName) + adj.getWeight();
-        }
+        proposed_distance = distances.get(townName) + adj.getWeight();
+
 
         if (proposed_distance < distances.get(adj.getTarget())) {
           distances.put(adj.getTarget(), proposed_distance);
         }
 
         if (unvisited.contains(adj.getTarget())) {
-          queue.remove(temp);
-          queue.add(new Object[] {adj.getTarget(), distances.get(adj.getTarget())});
+          if (adj.getTarget().equals(startTown)) {
+            queue.add(new PathInfo(adj.getTarget(), proposed_distance));
+          } else {
+            queue.add(new PathInfo(adj.getTarget(), distances.get(adj.getTarget())));
+          }
         }
 
       }
 
     }
-    if (distances.get(end_town) == Integer.MAX_VALUE) {
+
+    if (distances.get(endTown) == Integer.MAX_VALUE) {
       return "TARGET IS NOT REACHABLE FROM SOURCE";
     } else {
-
-      // theoretically should never execute, since we would have returned earlier;
-      return Integer.toString(distances.get(end_town));
+      return Integer.toString(distances.get(endTown));
     }
   }
 
-
-
-  //   distances = {}
-  //   @matrix.keys.each do |key|
-  //     distances[key] = Float::INFINITY
-  //   end
-  //   distances[start_town] = 0
-  //   visited = []
-  //   current = start_town
-
-  //   until current == end_town && distances[current] > 0
-  //     visited << current
-  //     @matrix[current].roads.each do |adj|
-  //       proposed_distance = distances[current] + adj.weight
-  //       if adj.target == start_town && start_town == end_town
-  //         return proposed_distance
-  //       else
-  //         distances[adj.target] = [distances[adj.target], proposed_distance].min
-  //       end
-  //     end
-  //     current = distances.reject{|key, value| visited.include? key}.min_by{|key, value| value}.first
-  //   end
-  //   distances[end_town]
-  // end
 }

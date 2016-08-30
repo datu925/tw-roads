@@ -16,7 +16,7 @@ public class Kiwiland {
     System.out.println(graph.getRouteDistance(new String[] {"A", "D", "C"}));
     System.out.println(graph.getRouteDistance(new String[] {"A", "E", "B", "C", "D"}));
     System.out.println(graph.getRouteDistance(new String[] {"A", "E", "D"}));
-    System.out.println(graph.getNumberOfPathsStops("C", "C", 1, 3));
+    System.out.println(graph.getNumberOfPathsStops("C", "C", 0, 3));
     System.out.println(graph.getNumberOfPathsStops("A", "C", 4, 4));
     System.out.println(graph.getShortestPath("A", "C"));
     System.out.println(graph.getShortestPath("B", "B"));

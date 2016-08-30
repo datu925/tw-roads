@@ -43,10 +43,4 @@ public class InputReader {
     return reader.parseRoadList(contents);
   }
 
-  // public String[] readQueryFile(String fileName) {
-  //   InputReader reader = new InputReader();
-  //   String contents = reader.readFile(filename);
-  //   return reader.parseRoadList(contents);
-  // }
-
 }
