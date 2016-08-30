@@ -5,7 +5,7 @@ public class InputReader {
   private String[] roadList;
 
 
-  public void readFile(String fileName) {
+  public String readFile(String fileName) {
     String line = null;
     String contents = "";
 
@@ -18,16 +18,29 @@ public class InputReader {
       }
       bufferedReader.close();
 
-      fileContents = contents;
+      return contents;
     } catch (FileNotFoundException e) {
       System.out.println("Could not find file.");
+      return null;
     } catch (IOException e) {
       System.out.println("Error reading file.");
+      return null;
     }
   }
 
-  public String[] parseRoadList() {
-    roadList = fileContents.split(", ");
-    return roadList;
+  public String[] parseRoadList(String contents) {
+    if (contents != null) {
+      roadList = contents.split(", ");
+      return roadList;
+    } else {
+      return null;
+    }
   }
+
+  public String[] readGraphFile(String fileName) {
+    InputReader reader = new InputReader();
+    String contents = reader.readFile(fileName);
+    return reader.parseRoadList(contents);
+  }
+
 }
